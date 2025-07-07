@@ -1,13 +1,15 @@
 from tkinter import *
 from tkinter import ttk
+from tkinter import colorchooser
 from tkinter import simpledialog
+from tkinter import Toplevel, Scale, HORIZONTAL, Label, Button
 
 prev_x = None
 prev_y = None
 canvas = None
 
 #Standard variables
-line_width = 2
+lineWidth = 2
 backgroundColor = "white"
 color = "black"
 
@@ -18,12 +20,12 @@ def on_click(event):
     
 def drawing(event):
     '''Drawing function'''
-    global prev_x, prev_y, canvas, line_width, color
+    global prev_x, prev_y, canvas, lineWidth, color
     current_x, current_y = event.x, event.y
     # print("Coordinates: ({}, {})".format(current_x, current_y))
     if prev_x is not None and prev_y is not None:
         # print("Drawing line from ({}, {}) to ({}, {})".format(prev_x, prev_y, current_x, current_y))
-        canvas.create_line(prev_x, prev_y, current_x, current_y, fill=color, width=line_width, joinstyle="round", capstyle="round")
+        canvas.create_line(prev_x, prev_y, current_x, current_y, fill=color, width=lineWidth, joinstyle="round", capstyle="round")
     prev_x, prev_y = current_x, current_y
     #Drawing a line betweeen previous and current coordinates
     
@@ -38,26 +40,49 @@ def clear():
     '''Clear the canvas.'''
     global canvas
     canvas.delete("all")
-    # print("Canvas cleared")
-    # Clear the canvas and print a message
+    # Delete all items from the canvas
 
+        
 def widthMenu():
-    '''Change the width of the lines drawn.'''
-    global line_width
-    width = simpledialog.askinteger("Line Width", "Enter line width:", minvalue=1, maxvalue=100)
-    if width is not None:
-        line_width = width
-        # Change the width of the lines drawn on the canvas
+    '''Open a dialog to select the line width.'''
+    global lineWidth
+    
+    def applyWidth():
+        nonlocal slider
+        global lineWidth
+        lineWidth = slider.get()
+        win.destroy()
+        
+    win = Toplevel(root)
+    win.title("Select Line Width")
+    win.geometry("300x150")
+    win.resizable(False, False)
+    
+    win.transient(root)
+    win.grab_set()
+    win.focus_set()
+    
+    Label(win, text="Adjust Line Width:").pack(pady=10)
+    
+    slider = Scale(win, from_=1, to=20, orient=HORIZONTAL, length=250)
+    slider.set(lineWidth)  # Set the current line width
+    slider.pack()
+    
+    Button(win, text="Apply", command=applyWidth).pack(pady=5)
         
 def colorMenu():
     '''Change the color of the lines drawn.'''
-    global canvas, color
-    color = simpledialog.askstring("Line Color", "Enter line color (e.g., 'red', '#FF0000'):", initialvalue="black")
+    global color
+    selected_color = colorchooser.askcolor(title="Select Line Color")
+    if selected_color[1] is not None:
+        color = selected_color[1]
     
 def backgroundMenu():
     '''Change the background color of the canvas.'''
     global canvas, backgroundColor
-    backgroundColor = simpledialog.askstring("Background Color", "Enter background color (e.g., 'white', '#FFFFFF'):", initialvalue="white")
+    selected_color = colorchooser.askcolor(title="Select Background Color")
+    if selected_color[1] is not None:
+        backgroundColor = selected_color[1]
     canvas.config(bg=backgroundColor)
     # Change the background color of the canvas
 
