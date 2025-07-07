@@ -1,19 +1,48 @@
 from tkinter import *
 from tkinter import ttk
 from tkinter import colorchooser
-from tkinter import simpledialog
 from tkinter import Toplevel, Scale, HORIZONTAL, Label, Button
 
 prev_x = None
 prev_y = None
 canvas = None
 
+selectedXFirst = None
+selectedYFirst = None
+selectedXSecond = None
+selectedYSecond = None
+
+selectRectangleId = None
+
 #Standard variables
 lineWidth = 2
 backgroundColor = "white"
 color = "black"
 
-def on_click(event):
+
+def drawingMode():
+    '''Toggle drawing mode.'''
+    deleteSelection()  # Delete any existing selection rectangle
+    root.unbind("<Button-1>")
+    root.unbind("<B1-Motion>")
+    root.unbind("<ButtonRelease-1>")
+    
+    # root.bind("<Button-1>", onClickDraw) # Left mouse click
+    root.bind("<B1-Motion>", onClickDraw) # Left mouse drag
+    root.bind("<ButtonRelease-1>", onReleaseDraw) # Left mouse release
+    
+def selectMode():
+    '''Toggle select mode.'''
+    
+    root.unbind("<Button-1>")
+    root.unbind("<B1-Motion>")
+    root.unbind("<ButtonRelease-1>")
+    
+    root.bind("<Button-1>", onClickSelect) # Left mouse click
+    root.bind("<B1-Motion>", onDragSelect) # Left mouse drag
+    root.bind("<ButtonRelease-1>", onReleaseSelect) # Left mouse release
+    
+def onClickDraw(event):
     '''Handle mouse click events and print coordinates.'''
     drawing(event)
     # Function to make it more fancy :D
@@ -28,8 +57,8 @@ def drawing(event):
         canvas.create_line(prev_x, prev_y, current_x, current_y, fill=color, width=lineWidth, joinstyle="round", capstyle="round")
     prev_x, prev_y = current_x, current_y
     #Drawing a line betweeen previous and current coordinates
-    
-def on_release(event):
+
+def onReleaseDraw(event):
     '''Handle mouse release events.'''
     global prev_x, prev_y
     # print("Mouse released at ({}, {})".format(event.x, event.y))
@@ -38,13 +67,16 @@ def on_release(event):
 
 def clear():
     '''Clear the canvas.'''
-    global canvas
+    drawingMode()
+    global canvas, backgroundColor
+    canvas.config(bg="white")  # Reset background color
     canvas.delete("all")
     # Delete all items from the canvas
 
         
 def widthMenu():
     '''Open a dialog to select the line width.'''
+    drawingMode()
     global lineWidth
     
     def applyWidth():
@@ -72,6 +104,8 @@ def widthMenu():
         
 def colorMenu():
     '''Change the color of the lines drawn.'''
+    deleteSelection()  # Delete any existing selection rectangle
+    drawingMode()
     global color
     selected_color = colorchooser.askcolor(title="Select Line Color")
     if selected_color[1] is not None:
@@ -79,12 +113,75 @@ def colorMenu():
     
 def backgroundMenu():
     '''Change the background color of the canvas.'''
+    drawingMode()
     global canvas, backgroundColor
     selected_color = colorchooser.askcolor(title="Select Background Color")
     if selected_color[1] is not None:
         backgroundColor = selected_color[1]
     canvas.config(bg=backgroundColor)
     # Change the background color of the canvas
+    
+def eraser():
+    '''Change the color to white to act as an eraser.'''
+    drawingMode()
+    global color
+    color = "white"
+    
+def select():
+    '''Select Area'''
+    global selectRectangleId
+    if selectRectangleId is not None:
+        canvas.delete(selectRectangleId)
+        selectRectangleId = None
+    selectMode()
+
+def onClickSelect(event):
+    '''Handle mouse click events for selection.'''
+    global selectedXFirst, selectedYFirst, selectRectangleId
+
+    deleteSelection()  # Delete any existing selection rectangle
+    
+    selectedXFirst = event.x
+    selectedYFirst = event.y 
+
+def onDragSelect(event):
+    '''Handle mouse drag events for selection.'''
+    global selectedXSecond, selectedYSecond, selectRectangleId
+    selectedXSecond = event.x
+    selectedYSecond = event.y
+    deleteSelection()  # Delete any existing selection rectangle
+    selectRectangleId = canvas.create_rectangle(selectedXFirst, selectedYFirst, selectedXSecond, selectedYSecond, outline="red", width=2)
+
+def onReleaseSelect(event):
+    '''Handle mouse release events for selection.'''
+    global selectedXSecond, selectedYSecond, selectRectangleId
+    selectedXSecond = event.x
+    selectedYSecond = event.y
+    
+    # Remove previous selection rectangle to avoid duplicates, which is leading to not deleting one of them
+    deleteSelection()  # Delete any existing selection rectangle
+    
+    # Check if the selection rectangle is valid
+    if selectedXFirst == selectedXSecond and selectedYFirst == selectedYSecond:
+        return
+    
+    selectRectangleId = canvas.create_rectangle(selectedXFirst, selectedYFirst, selectedXSecond, selectedYSecond, outline="red", width=2)
+    
+    print("SelectId: %s" % selectRectangleId)
+
+def draw():
+    '''Set the mode to drawing.'''
+    global selectRectangleId, color
+    color = "black"  # Reset color to black for drawing
+    drawingMode()
+
+def deleteSelection():
+    '''Delete the selected area.'''
+    global selectRectangleId
+    if selectRectangleId is not None:
+        canvas.delete(selectRectangleId)
+        selectRectangleId = None
+    
 
 root = Tk()
 frm = ttk.Frame(root)
@@ -96,8 +193,11 @@ root.grid_columnconfigure(0, weight=1)
 #Buttons section
 ttk.Button(frm, text="Clear", command=clear).grid(row=0, column=0, sticky="EW")
 ttk.Button(frm, text="Width", command=widthMenu).grid(row=0, column=1, sticky="EW")
+ttk.Button(frm, text="Eraser", command=eraser).grid(row=0, column=2, sticky="EW")
+ttk.Button(frm, text="Pen", command=draw).grid(row=0, column=3, sticky="EW")
 ttk.Button(frm, text="Color", command=colorMenu).grid(row=1, column=0, sticky="EW")
 ttk.Button(frm, text="Background", command=backgroundMenu).grid(row=1, column=1, sticky="EW")
+ttk.Button(frm, text="Select", command=select).grid(row=1, column=2, sticky="EW")
 
 # Create a canvas for drawing with a white background
 canvas = Canvas(frm, bg=backgroundColor)
@@ -107,17 +207,17 @@ canvas.grid(row=2, column=0, columnspan=99, sticky="NSEW")
 frm.grid_rowconfigure(0, weight=0)
 frm.grid_rowconfigure(1, weight=0)
 frm.grid_rowconfigure(2, weight=1)
+
 frm.grid_columnconfigure(0, weight=1)
 frm.grid_columnconfigure(1, weight=1)
+frm.grid_columnconfigure(2, weight=1)
+frm.grid_columnconfigure(3, weight=1)
 
 # Set the window to full screen
 screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
 root.geometry("{}x{}".format(screen_width, screen_height))
 
-# Binding mouse events to the canvbas
-root.bind("<Button-1>", on_click) # Left mouse click
-root.bind("<B1-Motion>", on_click) # Left mouse drag
-root.bind("<ButtonRelease-1>", on_release) # Left mouse release
+drawingMode()  # Set the initial mode to drawing
 
 root.mainloop()
