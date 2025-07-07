@@ -150,7 +150,7 @@ def onDragSelect(event):
     selectedXSecond = event.x
     selectedYSecond = event.y
     deleteSelection()  # Delete any existing selection rectangle
-    selectRectangleId = canvas.create_rectangle(selectedXFirst, selectedYFirst, selectedXSecond, selectedYSecond, outline="red", width=2)
+    selectRectangleId = canvas.create_rectangle(selectedXFirst, selectedYFirst, selectedXSecond, selectedYSecond, outline="red", width=2, dash=(30, 2))
 
 def onReleaseSelect(event):
     '''Handle mouse release events for selection.'''
@@ -164,10 +164,9 @@ def onReleaseSelect(event):
     # Check if the selection rectangle is valid
     if selectedXFirst == selectedXSecond and selectedYFirst == selectedYSecond:
         return
-    
-    selectRectangleId = canvas.create_rectangle(selectedXFirst, selectedYFirst, selectedXSecond, selectedYSecond, outline="red", width=2)
-    
-    print("SelectId: %s" % selectRectangleId)
+
+    selectRectangleId = canvas.create_rectangle(selectedXFirst, selectedYFirst, selectedXSecond, selectedYSecond, outline="red", width=2, dash=(30, 2))
+
 
 def draw():
     '''Set the mode to drawing.'''
