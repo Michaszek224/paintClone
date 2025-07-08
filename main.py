@@ -18,6 +18,9 @@ selectedYSecond = None
 
 selectRectangleId = None
 
+imagesOnCanvasId = None
+pastedImage = None
+
 #Standard variables
 lineWidth = 2
 backgroundColor = "white"
@@ -57,6 +60,45 @@ def selectMode():
     root.bind("<Control-x>", cut)    # Ctrl+X for cut
     root.bind("<Control-v>", paste)  # Ctrl+V for paste
     
+def movingMode():
+    '''Toggle moving mode.'''
+    root.unbind("<Button-1>")
+    root.unbind("<B1-Motion>")
+    root.unbind("<ButtonRelease-1>")
+    root.unbind("<Delete>")
+    root.unbind("<Control-c>")
+    root.unbind("<Control-x>")
+    root.unbind("<Control-v>")
+
+    root.bind("<Button-1>", onClickMove)  # Left mouse click to start moving
+    root.bind("<Control-v>", paste)  # Ctrl+V for paste
+    root.bind("<B1-Motion>", onDragMoving)
+    root.bind("<ButtonRelease-1>", onReleaseMoving)
+    
+def onClickMove(event):
+    '''Handle mouse click events for moving.'''
+    global imageOnCanvasId, prev_x, prev_y
+    prev_x = event.x
+    prev_y = event.y
+
+def onDragMoving(event):
+    '''Handle mouse drag events for moving.'''
+    global imageOnCanvasId, prev_x, prev_y
+
+    if imageOnCanvasId is not None and prev_x is not None and prev_y is not None:
+        delta_x = event.x - prev_x
+        delta_y = event.y - prev_y
+        canvas.move(imageOnCanvasId, delta_x, delta_y) # Move the image by the calculated deltas
+    prev_x = event.x
+    prev_y = event.y
+
+def onReleaseMoving(event):
+    '''Handle mouse release events for moving.'''
+    global imageOnCanvasId, prev_x, prev_y
+    imageOnCanvasId = None
+    prev_x = None
+    prev_y = None
+
 def copy(event):
     '''Copy the selected area to the clipboard.'''
     global selectedXFirst, selectedYFirst, selectedXSecond, selectedYSecond
@@ -103,6 +145,7 @@ def cut(event):
 
 def paste(event):
     '''Paste the copied area from the clipboard.'''
+    global imageOnCanvasId, pastedImage
     try:
         imgToPaste = ImageGrab.grabclipboard()
         sourceDesc = "Windows clipboard"
@@ -116,10 +159,13 @@ def paste(event):
         pasteY = 0
         
         tkImage = ImageTk.PhotoImage(imgToPaste)
+        pastedImage = tkImage  # Store the pasted image reference
         
         imageOnCanvasId = canvas.create_image(pasteX, pasteY, image=tkImage, anchor="nw") # Create an image item on the canvas
         
         canvas.image_references.append(tkImage) # Store a reference to prevent garbage collection
+        movingMode()  # Switch to moving mode after pasting
+    
 
 def delete(event):
     '''Delete the selected area.'''
